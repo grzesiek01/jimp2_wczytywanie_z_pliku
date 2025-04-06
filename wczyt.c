@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include "division.h"
 
 #define BASE_SIZE 256
 #define MAX_LINE 1000000
@@ -134,6 +135,22 @@ void print_list(List_t *head) {
     }
 }
 
+int nodes_count(List_t *head) {
+    int number = 0;
+    List_t *current = head;
+    while(current != NULL) {
+        if(current->node1 > number) {
+            number = current->node1;
+        }
+        if(current->node2 > number) {
+            number = current->node2;
+        }
+        current = current->next;
+    }
+
+    return number;
+}
+
 int main(int argc, char **argv){
     int* tab1 = malloc(sizeof(int));
     int* tab2;
@@ -212,6 +229,10 @@ int main(int argc, char **argv){
 
     connection_list(&head, tab4, n4, tab5, n5);
     print_list(head);
+
+    int nodes = nodes_count(head);
+    int *groups = make_groups(nodes, 6);
+    print_groups(groups, nodes, 6);
 
     free(tab1);
     free(tab2);
