@@ -148,7 +148,50 @@ int nodes_count(List_t *head) {
         current = current->next;
     }
 
-    return number;
+    return number + 1;
+}
+
+int find_first_node_in_group(int* groups, int number){
+    int i = 0;
+    while(1){
+        if(groups[i] == number){
+            return i;
+        }
+        i++;
+    }
+}
+
+void swap_groups(List_t *head, int* groups){
+    List_t *current = head;
+    int f;
+    while (current != NULL) {
+        int group1 = groups[current->node1];
+        int group2 = groups[current->node2];
+        if(group1 != group2){
+            f = find_first_node_in_group(groups,group1);
+            groups[f] = group2;
+            groups[current->node2] = group1;
+        } 
+        current = current->next;
+    }
+}
+
+int* connections_in_groups(List_t *head, int* groups, int groups_n) {
+    int* number_of_connections = calloc(groups_n, sizeof(int));
+    List_t *current = head;
+
+    while (current != NULL) {
+        int group1 = groups[current->node1];
+        int group2 = groups[current->node2];
+        if(group1 == group2){
+            number_of_connections[group1]+=1;
+        } 
+        else{
+            number_of_connections[groups_n-1]+=1;
+        }
+        current = current->next;
+    }
+    return number_of_connections;
 }
 
 int main(int argc, char **argv){
@@ -179,28 +222,28 @@ int main(int argc, char **argv){
     fgets(line, sizeof(line), input);
     sscanf(line, "%d", &number);
     tab1[0] = number;
-    printf("Tablica 1: ");
-    write_tab(tab1,n1);
+    //printf("Tablica 1: ");
+    // write_tab(tab1,n1);
 
     fgets(line, sizeof(line), input);
     n2 = read_line(line,&tab2);
-    printf("Tablica 2: ");
-    write_tab(tab2,n2);
+    // printf("Tablica 2: ");
+    // write_tab(tab2,n2);
 
     fgets(line, sizeof(line), input);
     n3 = read_line(line,&tab3);
-    printf("Tablica 3: ");
-    write_tab(tab3,n3);
+    // printf("Tablica 3: ");
+    // write_tab(tab3,n3);
 
     fgets(line, sizeof(line), input);
     n4 = read_line(line,&tab4);
-    printf("Tablica 4: ");
-    write_tab(tab4,n4);
+    // printf("Tablica 4: ");
+    // write_tab(tab4,n4);
 
     fgets(line, sizeof(line), input);
     n5 = read_line(line,&tab5);
-    printf("Tablica 5: ");
-    write_tab(tab5,n5);
+    // printf("Tablica 5: ");
+    // write_tab(tab5,n5);
 
     fclose(input);
 
@@ -230,9 +273,24 @@ int main(int argc, char **argv){
     connection_list(&head, tab4, n4, tab5, n5);
     print_list(head);
 
+    int group_number = atoi(argv[2]);
     int nodes = nodes_count(head);
-    int *groups = make_groups(nodes, 6);
-    print_groups(groups, nodes, 6);
+    int *groups = make_groups(nodes, group_number);
+
+    int *number_of_connections = connections_in_groups(head, groups, group_number+1);
+
+    swap_groups(head,groups);
+
+    number_of_connections = connections_in_groups(head, groups, group_number+1);
+
+    print_groups(groups,nodes,group_number);
+    
+    printf("Liczba połączeń w grupach:\n");
+
+    for(int i = 0; i < group_number+1; i++){
+        printf("%d: %d\n",i+1,number_of_connections[i]);
+    }
+
 
     free(tab1);
     free(tab2);
