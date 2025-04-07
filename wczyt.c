@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <locale.h>
 #include "division.h"
 
 #define BASE_SIZE 256
@@ -12,27 +13,27 @@ int read_line(char* line, int** numbers){
     int number;
     int count = 0;
     int capacity = BASE_SIZE;
+
     token = strtok(line, ";");
-    *numbers = malloc(capacity * sizeof(int)); // Poprawiona alokacja pamięci
+    *numbers = malloc(capacity * sizeof(int));
     if (*numbers == NULL) {
         perror("Błąd alokacji pamięci");
         exit(EXIT_FAILURE);
     }
+
     while (token != NULL) {
-        // Przekształć token na liczbę
         if (sscanf(token, "%d", &number) == 1) {
-            // Sprawdź czy to liczba naturalna (dodatnia)
             if (number >= 0) {
-                // Sprawdź, czy tablica ma wystarczającą pojemność
                 if (count >= capacity) {
-                    capacity *= 2; // Podwajamy pojemność
-                    printf("\n%d\n",capacity);
-                    numbers = realloc(numbers, capacity * sizeof(int));
-                    if (numbers == NULL) {
+                    capacity *= 2;
+                    printf("\nZwiększanie pojemności do: %d\n", capacity);
+                    int* temp = realloc(*numbers, capacity * sizeof(int));
+                    if (temp == NULL) {
                         perror("Błąd alokacji pamięci");
+                        exit(EXIT_FAILURE);
                     }
+                    *numbers = temp;
                 }
-                // Zapisz liczbę do tablicy
                 (*numbers)[count++] = number;
             } else {
                 printf("Błąd: oczekiwana liczba naturalna, ale znaleziono %d\n", number);
@@ -40,11 +41,12 @@ int read_line(char* line, int** numbers){
         } else {
             printf("Błąd: Nie udało się przekształcić '%s' na liczbę\n", token);
         }
-        // Pobierz następny token
         token = strtok(NULL, ";");
     }
+
     return count;
 }
+
 
 void write_tab(int* tab, int roz){
     for(int i = 0; i<roz; i++){
@@ -76,35 +78,6 @@ void print_graph(bool **graph, int n, int m) {
         }
         printf("]\n");
     }
-}
-
-typedef struct List_elem{
-    int node1;
-    int node2;
-    struct List_elem *next;
-}List_t;
-
-void append(List_t **head, int a, int b) {
-    List_t *new_connection = (List_t*)malloc(sizeof(List_t));
-    if (new_connection == NULL) {
-        printf("Błąd alokacji pamięci!\n");
-        exit(EXIT_FAILURE);
-    }
-    List_t *current = *head;
-    new_connection->node1 = a;
-    new_connection->node2 = b;
-    new_connection->next = NULL;
-    
-    if(*head == NULL) {
-        *head = new_connection;
-        return;
-    }
-
-    while(current->next != NULL) {
-        current = current->next;
-    }
-
-    current->next = new_connection;
 }
 
 void connection_list(List_t **head, int *groups, int n1, int *first_nodes, int n2) {
@@ -176,25 +149,9 @@ void swap_groups(List_t *head, int* groups){
     }
 }
 
-int* connections_in_groups(List_t *head, int* groups, int groups_n) {
-    int* number_of_connections = calloc(groups_n, sizeof(int));
-    List_t *current = head;
-
-    while (current != NULL) {
-        int group1 = groups[current->node1];
-        int group2 = groups[current->node2];
-        if(group1 == group2){
-            number_of_connections[group1]+=1;
-        } 
-        else{
-            number_of_connections[groups_n-1]+=1;
-        }
-        current = current->next;
-    }
-    return number_of_connections;
-}
 
 int main(int argc, char **argv){
+    setlocale(LC_ALL, "pl_PL.utf8");
     int* tab1 = malloc(sizeof(int));
     int* tab2;
     int* tab3;
@@ -223,27 +180,27 @@ int main(int argc, char **argv){
     sscanf(line, "%d", &number);
     tab1[0] = number;
     //printf("Tablica 1: ");
-    // write_tab(tab1,n1);
+    //write_tab(tab1,n1);
 
     fgets(line, sizeof(line), input);
     n2 = read_line(line,&tab2);
-    // printf("Tablica 2: ");
-    // write_tab(tab2,n2);
+    //printf("Tablica 2: ");
+    //write_tab(tab2,n2);
 
     fgets(line, sizeof(line), input);
     n3 = read_line(line,&tab3);
-    // printf("Tablica 3: ");
-    // write_tab(tab3,n3);
+    //printf("Tablica 3: ");
+    //write_tab(tab3,n3);
 
     fgets(line, sizeof(line), input);
     n4 = read_line(line,&tab4);
-    // printf("Tablica 4: ");
-    // write_tab(tab4,n4);
+    //printf("Tablica 4: ");
+    //write_tab(tab4,n4);
 
     fgets(line, sizeof(line), input);
     n5 = read_line(line,&tab5);
-    // printf("Tablica 5: ");
-    // write_tab(tab5,n5);
+    //printf("Tablica 5: ");
+    //write_tab(tab5,n5);
 
     fclose(input);
 
@@ -273,24 +230,44 @@ int main(int argc, char **argv){
     connection_list(&head, tab4, n4, tab5, n5);
     print_list(head);
 
-    int group_number = atoi(argv[2]);
+    int group_number;
+    if(argc < 3) {
+        group_number = 2;
+    }else if(atoi(argv[2]) < 2){
+        printf("Podano nieprawidłową ilość grup! Minimalna ilość grup: 2\n");
+        return 1;
+    }else{
+        group_number = atoi(argv[2]);
+    }
+
     int nodes = nodes_count(head);
     int *groups = make_groups(nodes, group_number);
 
-    int *number_of_connections = connections_in_groups(head, groups, group_number+1);
+    int *gains = malloc(nodes * sizeof(int));
+    bool *locked = calloc(nodes, sizeof(bool));
 
-    swap_groups(head,groups);
+    gains = count_gains(head, nodes, groups);
 
-    number_of_connections = connections_in_groups(head, groups, group_number+1);
-
+    printf("Grupy:\n");
     print_groups(groups,nodes,group_number);
-    
-    printf("Liczba połączeń w grupach:\n");
 
-    for(int i = 0; i < group_number+1; i++){
-        printf("%d: %d\n",i+1,number_of_connections[i]);
+    printf("Liczba połączeń zewnętrznych: %d\n", count_ext(head, nodes, groups));
+    for(int i = 0; i < group_number; i++) {
+        printf("Liczba połączeń wewnętrznych gr %d: %d\n", i+1, count_int(head, nodes, groups, i));
     }
+    
+    swap_groups(head,groups);
+    printf("\nTrwa optymalizacja podziału, proszę czekać ...\n");
+    optimize_groups(&groups, nodes, gains, head, locked);
 
+    printf("\nGrupy po zamianie miejsc:\n");
+    print_groups(groups,nodes,group_number);
+
+    printf("Liczba połączeń zewnętrznych: %d\n", count_ext(head, nodes, groups));
+    for(int i = 0; i < group_number; i++) {
+        printf("Liczba połączeń wewnętrznych gr %d: %d\n", i+1, count_int(head, nodes, groups, i));
+    }
+    
 
     free(tab1);
     free(tab2);
